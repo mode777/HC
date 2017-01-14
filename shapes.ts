@@ -1,21 +1,21 @@
 import { Polygon } from "./polygon";
-
-export interface Point {
-    x: number;
-    y: number;
-}
+import { Vertex2d } from "./common";
 
 export class Shape {
 
     _rotation: number;
-    _center: Point;
+    _center: Vertex2d;
 
     constructor(){
-        this.init();
+        this._init();
     }
 
-    init(){
-        this._rotation = 0;
+    get center(): Vertex2d {
+        return this._center;
+    }
+
+    get rotation(): number {
+        return this._rotation;
     }
 
     moveTo(x: number, y: number){
@@ -35,13 +35,10 @@ export class Shape {
         return this.rotate(angle - this._rotation)
     }
 
-    get center(): Point {
-        return this._center;
+    private _init(){
+        this._rotation = 0;
     }
-
-    get rotation(): number {
-        return this._rotation;
-    }
+    
 }
 
 export class ConvexPolygonShape extends Shape {
