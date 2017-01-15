@@ -1,45 +1,6 @@
+import { vec2 } from './vector-light';
 import { Polygon } from "./polygon";
-import { Vertex2d } from "./common";
-
-export class Shape {
-
-    _rotation: number;
-    _center: Vertex2d;
-
-    constructor(){
-        this._init();
-    }
-
-    get center(): Vertex2d {
-        return this._center;
-    }
-
-    get rotation(): number {
-        return this._rotation;
-    }
-
-    moveTo(x: number, y: number){
-        let c = this.center;
-        this.move(x - c.x, y - c.y);
-    }
-
-    move(x: number, y: number){
-        
-    }
-
-    rotate(angle: number){
-        this._rotation = this._rotation + angle;
-    }
-
-    setRotation(angle){
-        return this.rotate(angle - this._rotation)
-    }
-
-    private _init(){
-        this._rotation = 0;
-    }
-    
-}
+import { Vertex2d, Shape, CollisionResult } from './common';
 
 export class ConvexPolygonShape extends Shape {
     
@@ -51,6 +12,42 @@ export class ConvexPolygonShape extends Shape {
             throw "Polygon is not convex";
         this._polygon = polygon;
     }    
+
+    support(dx: number, dy: number): Vertex2d{
+        let v = this._polygon.vertices;
+        let max = -Number.MAX_VALUE;
+        let vmax: Vertex2d = null;
+
+        v.forEach((vert, i) => {
+            let d = vec2.dot(vert.x,vert.y, dx,dy);
+            if(d > max){
+                max = d;
+                vmax = vert;
+            }
+        });
+        
+        return {x: vmax.x, y: vmax.y};
+    }
+
+    // collision dispatching:
+    // let circle shape or compund shape handle the collision
+    collidesWith(other: Shape): CollisionResult {
+        if (this == other) 
+            return { collides: false };
+
+        if (!(other instanceof ConvexPolygonShape)){
+            var res = other.collidesWith(this);
+            return {
+                collides: res.collides,
+                sx: res.collides ? -res.sx : null,
+                sy: res.collides ? -res.sy : null,
+            }
+        }
+
+        // else: type is ConvexPolygonShape
+        return GJK(self, other)
+    }
+
 }
 
 export class ConcavePolygonShape extends Shape {
@@ -65,3 +62,33 @@ export class ConcavePolygonShape extends Shape {
         this._shapes = polys.map(x => new ConvexPolygonShape(x));
     }    
 }
+
+export class CircleShape extends Shape{
+
+    _radius: number;
+
+    constructor(cx: number, cy: number, radius: number){
+        super();
+        this._center = {x: cx, y: cy};
+        this._radius = radius;
+    }
+
+    support(dx: number, dy: number){
+        let n = vec2.normalize(dx,dy);
+        let mul = vec2.mul(this._radius, n.x, n.y);
+        return vec2.add(this._center.x, this._center.y, mul.x, mul.y);        
+    }
+}
+
+export class PointShape extends Shape{
+
+    _pos: Vertex2d;
+
+    constructor(x: number, y: number){
+        super();
+        this._pos = {x: x, y: y};
+        this._center = this._pos;
+    }
+}
+
+

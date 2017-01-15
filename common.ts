@@ -1,10 +1,65 @@
+function hashVertex(vertex: Vertex2d){
+    return vertex.x + "|" + vertex.y;
+}
+
 export interface Vertex2d {
     x: number;
     y: number;
 }
 
-function hashVertex(vertex: Vertex2d){
-    return vertex.x + "|" + vertex.y;
+export interface CollisionResult {
+    collides: boolean;
+    sx?: number;
+    sy?: number;
+}
+
+export interface EdgeResult {
+    dist: number;
+    n?: Vertex2d;
+    index?: number;
+}
+
+export abstract class Shape {
+
+    _rotation: number;
+    _center: Vertex2d;
+
+    constructor(){
+        this._init();
+    }
+
+    get center(): Vertex2d {
+        return this._center;
+    }
+
+    get rotation(): number {
+        return this._rotation;
+    }
+
+    moveTo(x: number, y: number){
+        let c = this.center;
+        this.move(x - c.x, y - c.y);
+    }
+
+    move(x: number, y: number){
+        
+    }
+
+    rotate(angle: number){
+        this._rotation = this._rotation + angle;
+    }
+
+    setRotation(angle){
+        return this.rotate(angle - this._rotation)
+    }
+
+    abstract collidesWith(other: Shape): CollisionResult;
+    abstract support(dx: number, dy: number): Vertex2d;
+
+    private _init(){
+        this._rotation = 0;
+    }
+    
 }
 
 export class VertexSet{

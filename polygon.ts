@@ -3,6 +3,7 @@ import { Vertex2d, VertexSet } from './common';
 
 let abs = Math.abs;
 let max = Math.max;
+let min = Math.min;
 
 // returns true if three vertices lie on a line
 function areColinear(p: Vertex2d, q: Vertex2d, r: Vertex2d, eps?: number){
@@ -110,7 +111,27 @@ function getSharedEdge(p: Vertex2d[], q: Vertex2d[]): number[]{
     }
 
 }
+
+// test if an edge cuts the ray
+function cutRay(x: number, y: number, p: Vertex2d, q: Vertex2d) {
+    return ((p.y > y && q.y < y) || (p.y < y && q.y > y)) 
+        && (x - p.x < (y - p.y) * (q.x - p.x) / (q.y - p.y));
+}
+
+// test if the ray crosses boundary from interior to exterior.
+// this is needed due to edge cases, when the ray passes through
+// polygon corners
+function crossBoundary(x: number, y: number, p: Vertex2d, q: Vertex2d){
+    return (p.y == y && p.x > x && q.y < y)
+        || (q.y == y && q.x > x && p.y < y);
+}
 	
+export interface IntersectionResult {
+    result: boolean;
+    min: number;
+}
+
+
 export class Polygon {
 
     vertices: Vertex2d[];
@@ -347,6 +368,84 @@ export class Polygon {
        
         return triangles
     }
+
+    contains(x: number, y: number) {
+        let v = this.vertices;
+        let inPolygon = false;
+        let p = v[v.length-1];
+        let q = v[v.length-1];
+
+        for(let i=0; i < v.length; i++){
+            p = q;
+            q = v[i];
+            if(cutRay(x,y,p,q) || crossBoundary(x,y,p,q))
+                inPolygon = !inPolygon;
+        }
+
+        return inPolygon
+    }
+
+    intersectionsWithRay(x: number, y: number, dx: number, dy: number) {
+        var n = vec2.perpendicular(dx,dy);
+        let wx: number, wy: number, det: number;
+
+        // ray parameters of each intersection
+        let ts: number[] = []; 
+        let q1: Vertex2d = null;
+        let q2 = this.vertices[this.vertices.length-1];
+        
+        for(let i= 0; i < this.vertices.length; i++){
+            q1 = q2;
+            q2 = this.vertices[i];
+            wx = q2.x - q1.x;
+            wy = q2.y - q1.y;
+            det = vec2.det(dx, dy, wx, wy);
+
+            if(det != 0){
+                // there is an intersection point. check if it lies on both
+                // the ray and the segment.
+                let rx = q2.x - x;
+                let ry = q2.y - y;
+                let l = vec2.det(rx,ry, wx,wy) / det;
+                let m = vec2.det(dx,dy, rx,ry) / det;
+                if (m >= 0 && m <= 1) {
+                    //  we cannot jump out early here (i.e. when l > tmin) because
+                    // the polygon might be concave
+                    ts.push(l);
+                }
+            }
+            else {
+                // lines parralel or incident. get distance of line to
+                // anchor point. if they are incident, check if an endpoint
+                // lies on the ray
+                let dist = vec2.dot(q1.x-x, q1.y-y, n.x, n.y);
+                if (dist == 0) {
+                    let l = vec2.dot(dx,dy, q1.x-x,q1.y-y);
+                    let m = vec2.dot(dx,dy, q2.x-x,q2.y-y);
+                    if (l >= m) {
+                        ts.push(l);
+                    }
+                    else {
+                        ts.push(m);
+                    }
+                }
+            }
+
+        }
+        return ts;
+    }
+
+    intersectsRay(x: number, y: number, dx: number, dy: number): IntersectionResult {
+        let tmin = Number.MAX_VALUE;
+        
+        for(let t of this.intersectionsWithRay(x,y,dx,dy)){
+            tmin = min(tmin, t);
+        }
+
+        return { result: tmin != Number.MAX_VALUE, min: tmin };
+    }
+        
+
 
     private _init(vertices: Vertex2d[]){
 
