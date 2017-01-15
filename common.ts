@@ -9,14 +9,7 @@ export interface Vertex2d {
 
 export interface CollisionResult {
     collides: boolean;
-    sx?: number;
-    sy?: number;
-}
-
-export interface EdgeResult {
-    dist: number;
-    n?: Vertex2d;
-    index?: number;
+    sep?: Vertex2d;
 }
 
 export abstract class Shape {

@@ -1,6 +1,7 @@
 import { vec2 } from './vector-light';
 import { Polygon } from "./polygon";
 import { Vertex2d, Shape, CollisionResult } from './common';
+import { GJK } from './gjk';
 
 export class ConvexPolygonShape extends Shape {
     
@@ -45,7 +46,7 @@ export class ConvexPolygonShape extends Shape {
         }
 
         // else: type is ConvexPolygonShape
-        return GJK(self, other)
+        return GJK(this, other);
     }
 
 }
