@@ -275,8 +275,77 @@ export class Polygon {
         return triangles;
     }
 
-    splitConvex(): Polygon[] {
+    mergeWith(other: Polygon): Polygon{
+        let shared = getSharedEdge(this.vertices, other.vertices);
+        
+        if(!shared)
+            throw "Polygons do not share an edge";
+        
+        let p = shared[0];
+        let q = shared[1];
 
+        let ret: Vertex2d[] = [];
+        for(let i = 0; i < p-1; i++){
+            ret.push(this.vertices[i]);
+        }
+
+        for(let i = 0; i < other.vertices.length-2; i++){
+            // todo: is this correct?
+            // i = ((i-1 + q) % #other.vertices) + 1
+            i = ((i + q) % other.vertices.length);
+            ret.push(other.vertices[i]);
+        }
+
+        for(let i = p+1; i < this.vertices.length; i++){
+            ret.push(this.vertices[i]);
+        }
+
+        return new Polygon(ret);
+    }
+
+    // split polygon into convex polygons.
+    // note that this won't be the optimal split in most cases, as
+    // finding the optimal split is a really hard problem.
+    // the method is to first triangulate and then greedily merge
+    // the triangles.
+    splitConvex(){
+        // edge case: polygon is a triangle or already convex
+        if(this.vertices.length <= 3 || this.isConvex)
+            return [this.clone()];
+        
+        let triangles = this.triangulate();
+        let i = 0;
+
+        do {
+            let p = triangles[i];
+            let k = i + 1;
+
+            while(k < triangles.length){
+                let success = true;
+                let merged: Polygon;
+
+                try {
+                    merged = p.mergeWith(triangles[k]);
+                }
+                catch(e) {
+                    success = false;
+                }
+
+                if(success && merged.isConvex){
+                    triangles[i] = merged;
+                    p = triangles[i];
+                    triangles.splice(k,1);
+                }
+                else {
+                    k++;
+                }
+            }
+            i++;
+        // todo: is this correct?
+        // until i >= #convex
+        } while(i < triangles.length - 1);
+       
+        return triangles
     }
 
     private _init(vertices: Vertex2d[]){
