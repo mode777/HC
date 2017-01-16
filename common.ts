@@ -48,6 +48,7 @@ export abstract class Shape {
 
     abstract collidesWith(other: Shape): CollisionResult;
     abstract support(dx: number, dy: number): Vertex2d;
+    abstract contains(x: number, y: number): boolean;
 
     private _init(){
         this._rotation = 0;
