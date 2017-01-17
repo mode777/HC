@@ -2,6 +2,11 @@ function hashVertex(vertex: Vertex2d){
     return vertex.x + "|" + vertex.y;
 }
 
+export interface IntersectionResult {
+    result: boolean;
+    min: number;
+}
+
 export interface Vertex2d {
     x: number;
     y: number;
@@ -34,10 +39,6 @@ export abstract class Shape {
         this.move(x - c.x, y - c.y);
     }
 
-    move(x: number, y: number){
-        
-    }
-
     rotate(angle: number){
         this._rotation = this._rotation + angle;
     }
@@ -49,6 +50,12 @@ export abstract class Shape {
     abstract collidesWith(other: Shape): CollisionResult;
     abstract support(dx: number, dy: number): Vertex2d;
     abstract contains(x: number, y: number): boolean;
+    abstract move(x: number, y: number); 
+    abstract intersectsRay(x: number, y: number, dx: number, dy: number): IntersectionResult;
+    abstract intersectionsWithRay(x: number, y: number, dx: number, dy: number): number[];
+    abstract outcircle(): number;
+    abstract boundingBox(): number[]; 
+    abstract scale(sx: number, sy: number);
 
     private _init(){
         this._rotation = 0;

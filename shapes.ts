@@ -1,6 +1,6 @@
 import { vec2 as vector } from './vector-light';
 import { Polygon } from "./polygon";
-import { Vertex2d, Shape, CollisionResult } from './common';
+import { Vertex2d, Shape, CollisionResult, IntersectionResult } from './common';
 import { GJK } from './gjk';
 
 export class ConvexPolygonShape extends Shape {
@@ -52,6 +52,13 @@ export class ConvexPolygonShape extends Shape {
         return this._polygon.contains(x,y);
     }
 
+    intersectsRay(x: number, y: number, dx: number, dy: number){
+        return this._polygon.intersectsRay(x,y, dx,dy);
+    }
+
+    intersectionsWithRay(x: number, y: number, dx: number, dy: number){
+        return this._polygon.intersectionsWithRay(x,y, dx,dy);
+    }
 }
 
 export class ConcavePolygonShape extends Shape {
@@ -100,6 +107,14 @@ export class ConcavePolygonShape extends Shape {
 
     support(dx: number, dy: number): Vertex2d{
         throw "Not supported";
+    }
+
+    intersectsRay(x: number, y: number, dx: number, dy: number){
+        return this._polygon.intersectsRay(x,y, dx,dy);
+    }
+
+    intersectionsWithRay(x: number, y: number, dx: number, dy: number){
+        return this._polygon.intersectionsWithRay(x,y, dx,dy);
     }
 }
 
@@ -161,6 +176,53 @@ export class CircleShape extends Shape{
         return vector.len2(x - this._center.x, y - this._center.y) < this._radius * this._radius;
     }
 
+    // circle intersection if distance of ray/center is smaller
+    // than radius.
+    // with r(s) = p + d*s = (x,y) + (dx,dy) * s defining the ray and
+    // (x - cx)^2 + (y - cy)^2 = r^2, this problem is eqivalent to
+    // solving [with c = (cx,cy)]:
+    //
+    //     d*d s^2 + 2 d*(p-c) s + (p-c)*(p-c)-r^2 = 0
+    intersectionsWithRay(x: number, y: number, dx: number, dy: number){
+        let pc = { 
+            x: x - this._center.x, 
+            y: y - this._center.y 
+        };
+
+        let a = vector.len2(dx,dy);
+        let b = 2 * vector.dot(dx,dy, pc.x,pc.y);
+        let c = vector.len2(pc.x, pc.y) - this._radius * this._radius;
+        let discr = b*b - 4*a*c;
+
+        if (discr < 0)
+            return [];
+
+        discr = Math.sqrt(discr);
+        let ts: number[] = [];
+        let t1 = discr-b; 
+        let t2 = -discr-b;
+        
+        if (t1 >= 0)
+            ts.push(t1/(2*a));
+        if (t2 >= 0)
+            ts.push(t2/(2*a));
+
+        return ts
+    }
+
+    intersectsRay(x: number, y: number, dx: number, dy: number){
+        let tmin = Number.MAX_VALUE;
+        
+        for(let t of this.intersectionsWithRay(x,y,dx,dy)) {
+            tmin = Math.min(t, tmin);
+        }
+        
+        return {
+            result: tmin != Number.MAX_VALUE,
+            min: tmin
+        };
+    }
+
 }
 
 export class PointShape extends Shape{
@@ -195,6 +257,22 @@ export class PointShape extends Shape{
 
     contains(x: number, y: number){
         return x == this._pos.x && y == this._pos.y;
+    }
+
+    // point shape intersects ray if it lies on the ray
+    intersectsRay(x: number, y: number, dx: number, dy: number){
+        let p = { x: this._pos.x-x, y: this._pos.y-y };
+        let t = vector.dot(p.x, p.y, dx, dy) / vector.len2(dx,dy);
+        
+        return { 
+            result: t >= 0, 
+            min:t 
+        };
+    }
+
+    intersectionsWithRay(x: number, y: number, dx: number ,dy: number) {
+        let res = this.intersectsRay(x,y, dx,dy)
+        return res.result ? [res.min] : [];
     }
 
 }

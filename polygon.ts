@@ -1,5 +1,5 @@
 import { vec2 } from './vector-light';
-import { Vertex2d, VertexSet } from './common';
+import { Vertex2d, VertexSet, IntersectionResult } from './common';
 
 let abs = Math.abs;
 let max = Math.max;
@@ -126,12 +126,6 @@ function crossBoundary(x: number, y: number, p: Vertex2d, q: Vertex2d){
         || (q.y == y && q.x > x && p.y < y);
 }
 	
-export interface IntersectionResult {
-    result: boolean;
-    min: number;
-}
-
-
 export class Polygon {
 
     vertices: Vertex2d[];
@@ -444,8 +438,6 @@ export class Polygon {
 
         return { result: tmin != Number.MAX_VALUE, min: tmin };
     }
-        
-
 
     private _init(vertices: Vertex2d[]){
 
